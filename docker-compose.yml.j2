@@ -1,0 +1,124 @@
+version: "3"
+services:
+  redis:
+    image: redis/redis-stack
+    restart: unless-stopped
+    ports:
+      - 6379:6379
+
+  {% if database == 'mysql' %}
+
+  mysql:
+    image: mysql/mysql-server
+    restart: unless-stopped
+    ports:
+      - 3306:3306
+    environment:
+      MYSQL_ROOT_PASSWORD: root_pass
+      MYSQL_DATABASE: gorse
+      MYSQL_USER: gorse
+      MYSQL_PASSWORD: gorse_pass
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  {% elif database == 'postgres' %}
+
+  postgres:
+    image: postgres:10.0
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_DB: gorse
+      POSTGRES_USER: gorse
+      POSTGRES_PASSWORD: gorse_pass
+
+  {% elif database == 'mongo' %}
+
+  mongo:
+    image: mongo:4.0
+    ports:
+      - 27017:27017
+    environment:
+      MONGO_INITDB_DATABASE: gorse
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: password
+
+  {% endif %}
+
+  worker:
+    build:
+      context: .
+      dockerfile: cmd/gorse-worker/Dockerfile
+    restart: unless-stopped
+    ports:
+      - 8089:8089
+    command: >
+      --master-host master --master-port 8086 
+      --http-host 0.0.0.0 --http-port 8089
+      --log-path /var/log/gorse/worker.log 
+      --cache-path /var/lib/gorse/worker_cache.data
+    volumes:
+      - gorse_log:/var/log/gorse
+      - worker_data:/var/lib/gorse
+    depends_on:
+      - master
+
+  server:
+    build:
+      context: .
+      dockerfile: cmd/gorse-server/Dockerfile
+    restart: unless-stopped
+    ports:
+      - 8087:8087
+    command: >
+      --master-host master --master-port 8086 
+      --http-host 0.0.0.0 --http-port 8087
+      --log-path /var/log/gorse/server.log 
+      --cache-path /var/lib/gorse/server_cache.data
+    volumes:
+      - gorse_log:/var/log/gorse
+      - server_data:/var/lib/gorse
+    depends_on:
+      - master
+
+  master:
+    build:
+      context: .
+      dockerfile: cmd/gorse-master/Dockerfile
+    restart: unless-stopped
+    ports:
+      - 8086:8086
+      - 8088:8088
+    environment:
+      GORSE_CACHE_STORE: redis://redis:6379
+      {% if database == 'mysql' %}
+      GORSE_DATA_STORE: mysql://gorse:gorse_pass@tcp(mysql:3306)/gorse
+      {% elif database == 'postgres' %}
+      GORSE_DATA_STORE: postgres://gorse:gorse_pass@postgres/gorse?sslmode=disable
+      {% elif database == 'mongo' %}
+      GORSE_DATA_STORE: mongodb://root:password@mongo:27017/gorse?authSource=admin&connect=direct
+      {% endif %}
+    command: >
+      -c /etc/gorse/config.toml 
+      --log-path /var/log/gorse/master.log 
+      --cache-path /var/lib/gorse
+    volumes:
+      - ./config/config.toml:/etc/gorse/config.toml
+      - gorse_log:/var/log/gorse
+      - master_data:/var/lib/gorse
+    depends_on:
+      - redis
+      {% if database == 'mysql' %}
+      - mysql
+      {% elif database == 'postgres' %}
+      - postgres
+      {% elif database == 'mongo' %}
+      - mongo
+      {% endif %}
+
+volumes:
+  mysql_data:
+  worker_data:
+  server_data:
+  master_data:
+  gorse_log:
