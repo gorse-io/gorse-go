@@ -18,10 +18,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/zhenghaoz/gorse/base/log"
 	"io"
 	"net/http"
 	"strings"
+
+	"github.com/zhenghaoz/gorse/base/log"
 
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
@@ -46,6 +47,14 @@ func (c *GorseClient) InsertFeedback(ctx context.Context, feedbacks []Feedback) 
 
 func (c *GorseClient) ListFeedbacks(ctx context.Context, feedbackType, userId string) ([]Feedback, error) {
 	return request[[]Feedback, any](ctx, c, "GET", c.entryPoint+fmt.Sprintf("/api/user/"+userId+"/feedback/"+feedbackType), nil)
+}
+
+func (c *GorseClient) DeleteFeedback(ctx context.Context, feedbackType, userId, itemId string) (Feedback, error) {
+	return request[Feedback, any](ctx, c, "DELETE", c.entryPoint+fmt.Sprintf("/api/feedback/%s/%s/%s", feedbackType, userId, itemId), nil)
+}
+
+func (c *GorseClient) DeleteFeedbacks(ctx context.Context, userId, itemId string) ([]Feedback, error) {
+	return request[[]Feedback, any](ctx, c, "DELETE", c.entryPoint+fmt.Sprintf("/api/feedback/%s/%s", userId, itemId), nil)
 }
 
 func (c *GorseClient) GetRecommend(ctx context.Context, userId string, category string, n, offset int) ([]string, error) {
