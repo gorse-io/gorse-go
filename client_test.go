@@ -237,9 +237,12 @@ func (suite *GorseClientTestSuite) TestItems() {
 	ctx := context.TODO()
 	timestamp := time.Unix(1660459054, 0).UTC().Format(time.RFC3339)
 	item := Item{
-		ItemId:     "100",
-		IsHidden:   true,
-		Labels:     []string{"a", "b", "c"},
+		ItemId:   "100",
+		IsHidden: true,
+		Labels: map[string]any{
+			"Topics":    []any{"a", "b", "c"},
+			"Embedding": []any{float64(1), float64(2), float64(3)},
+		},
 		Categories: []string{"d", "e"},
 		Timestamp:  timestamp,
 		Comment:    "comment",

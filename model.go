@@ -64,7 +64,7 @@ type ItemIterator struct {
 type Item struct {
 	ItemId     string   `json:"ItemId"`
 	IsHidden   bool     `json:"IsHidden"`
-	Labels     []string `json:"Labels"`
+	Labels     any      `json:"Labels"`
 	Categories []string `json:"Categories"`
 	Timestamp  string   `json:"Timestamp"`
 	Comment    string   `json:"Comment"`
