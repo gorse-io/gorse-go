@@ -18,8 +18,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/zhenghaoz/gorse/base/log"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 
@@ -172,7 +172,7 @@ func request[Response any, Body any](ctx context.Context, c *GorseClient, method
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
 		if err != nil {
-			log.Logger().Error(err.Error())
+			log.Println(err)
 		}
 	}(resp.Body)
 	buf := new(strings.Builder)

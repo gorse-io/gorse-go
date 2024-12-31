@@ -1,5 +1,3 @@
-//go:build integrate_test
-
 // Copyright 2022 gorse Project Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,16 +17,17 @@ package client
 import (
 	"context"
 	"encoding/base64"
+	"testing"
+	"time"
+
 	"github.com/go-redis/redis/v9"
 	"github.com/stretchr/testify/suite"
 	"github.com/thoas/go-funk"
-	"testing"
-	"time"
 )
 
 const (
 	RedisEndpoint = "redis://127.0.0.1:6379/0"
-	GorseEndpoint = "http://127.0.0.1:8087"
+	GorseEndpoint = "http://127.0.0.1:8088"
 	GorseApiKey   = ""
 )
 
