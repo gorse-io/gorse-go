@@ -74,6 +74,6 @@ type ItemPatch struct {
 	IsHidden   *bool
 	Categories []string
 	Timestamp  *time.Time
-	Labels     []string
+	Labels     any
 	Comment    *string
 }
