@@ -17,10 +17,10 @@ package client
 import "time"
 
 type Feedback struct {
-	FeedbackType string `json:"FeedbackType"`
-	UserId       string `json:"UserId"`
-	ItemId       string `json:"ItemId"`
-	Timestamp    string `json:"Timestamp"`
+	FeedbackType string    `json:"FeedbackType"`
+	UserId       string    `json:"UserId"`
+	ItemId       string    `json:"ItemId"`
+	Timestamp    time.Time `json:"Timestamp"`
 }
 
 type ErrorMessage string
@@ -62,12 +62,12 @@ type ItemIterator struct {
 }
 
 type Item struct {
-	ItemId     string   `json:"ItemId"`
-	IsHidden   bool     `json:"IsHidden"`
-	Labels     any      `json:"Labels"`
-	Categories []string `json:"Categories"`
-	Timestamp  string   `json:"Timestamp"`
-	Comment    string   `json:"Comment"`
+	ItemId     string    `json:"ItemId"`
+	IsHidden   bool      `json:"IsHidden"`
+	Labels     any       `json:"Labels"`
+	Categories []string  `json:"Categories"`
+	Timestamp  time.Time `json:"Timestamp"`
+	Comment    string    `json:"Comment"`
 }
 
 type ItemPatch struct {
