@@ -51,7 +51,7 @@ func (suite *GorseClientTestSuite) TearDownSuite() {
 
 func (suite *GorseClientTestSuite) TestFeedback() {
 	ctx := context.TODO()
-	timestamp := time.Unix(1660459054, 0).UTC().Format(time.RFC3339)
+	timestamp := time.Unix(1660459054, 0).UTC()
 	userId := "800"
 	insertFeedbackResp, err := suite.client.InsertFeedback(ctx, []Feedback{{
 		FeedbackType: "like",
@@ -132,7 +132,7 @@ func (suite *GorseClientTestSuite) TestSessionRecommend() {
 
 	feedbackType := "like"
 	userId := "0"
-	timestamp := time.Unix(1660459054, 0).UTC().Format(time.RFC3339)
+	timestamp := time.Unix(1660459054, 0).UTC()
 	resp, err := suite.client.SessionRecommend(ctx, []Feedback{
 		{
 			FeedbackType: feedbackType,
@@ -235,7 +235,7 @@ func (suite *GorseClientTestSuite) TestUsers() {
 
 func (suite *GorseClientTestSuite) TestItems() {
 	ctx := context.TODO()
-	timestamp := time.Unix(1660459054, 0).UTC().Format(time.RFC3339)
+	timestamp := time.Unix(1660459054, 0).UTC()
 	item := Item{
 		ItemId:   "100",
 		IsHidden: true,
