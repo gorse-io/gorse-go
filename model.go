@@ -44,16 +44,14 @@ type UserIterator struct {
 }
 
 type User struct {
-	UserId    string   `json:"UserId"`
-	Labels    []string `json:"Labels"`
-	Subscribe []string `json:"Subscribe"`
-	Comment   string   `json:"Comment"`
+	UserId  string   `json:"UserId"`
+	Labels  []string `json:"Labels"`
+	Comment string   `json:"Comment"`
 }
 
 type UserPatch struct {
-	Labels    []string
-	Subscribe []string
-	Comment   *string
+	Labels  []string
+	Comment *string
 }
 
 type ItemIterator struct {
