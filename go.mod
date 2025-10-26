@@ -5,7 +5,6 @@ go 1.21
 require (
 	github.com/go-redis/redis/v9 v9.0.0-rc.1
 	github.com/stretchr/testify v1.8.0
-	github.com/thoas/go-funk v0.9.2
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.36.4
 )
 

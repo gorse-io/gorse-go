@@ -22,7 +22,6 @@ import (
 
 	"github.com/go-redis/redis/v9"
 	"github.com/stretchr/testify/suite"
-	"github.com/thoas/go-funk"
 )
 
 const (
