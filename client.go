@@ -60,7 +60,7 @@ func (c *GorseClient) GetRecommend(ctx context.Context, userId string, category 
 	return request[[]string, any](ctx, c, "GET", c.entryPoint+fmt.Sprintf("/api/recommend/%s/%s?n=%d&offset=%v", userId, category, n, offset), nil)
 }
 
-// use category as emtpy string to get all elements
+// use category as empty string to get all elements
 
 func (c *GorseClient) GetLatestItems(ctx context.Context, userId string, category string, n int, offset int) ([]Score, error) {
 	var userIDParameter string
