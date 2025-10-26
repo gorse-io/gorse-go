@@ -257,15 +257,6 @@ func (suite *GorseClientTestSuite) TestItems() {
 	suite.NoError(err)
 	suite.Equal(1, rowAffected.RowAffected)
 
-	resp, err := suite.client.GetPopularItems(ctx, "", "", 10, 0)
-	suite.NoError(err)
-	funk.NotEmpty(resp)
-
-	category := "d"
-	resp, err = suite.client.GetPopularItems(ctx, "", category, 10, 0)
-	suite.NoError(err)
-	funk.NotEmpty(resp)
-
 	itemResp, err := suite.client.GetItem(ctx, "100")
 	suite.NoError(err)
 	suite.Equal(item, itemResp)
