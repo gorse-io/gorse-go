@@ -20,6 +20,7 @@ type Feedback struct {
 	FeedbackType string    `json:"FeedbackType"`
 	UserId       string    `json:"UserId"`
 	ItemId       string    `json:"ItemId"`
+	Value        float64   `json:"Value"`
 	Timestamp    time.Time `json:"Timestamp"`
 }
 
