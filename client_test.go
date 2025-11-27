@@ -16,270 +16,226 @@ package client
 
 import (
 	"context"
-	"encoding/base64"
 	"testing"
 	"time"
 
-	"github.com/go-redis/redis/v9"
 	"github.com/stretchr/testify/suite"
 )
 
 const (
-	RedisEndpoint = "redis://127.0.0.1:6379/0"
-	GorseEndpoint = "http://127.0.0.1:8088"
-	GorseApiKey   = ""
+	serverEndpoint = "http://127.0.0.1:8088"
+	GorseApiKey    = ""
 )
 
 type GorseClientTestSuite struct {
 	suite.Suite
 	client *GorseClient
-	redis  *redis.Client
 }
 
 func (suite *GorseClientTestSuite) SetupSuite() {
-	suite.client = NewGorseClient(GorseEndpoint, GorseApiKey)
-	options, err := redis.ParseURL(RedisEndpoint)
-	suite.NoError(err)
-	suite.redis = redis.NewClient(options)
-}
-
-func (suite *GorseClientTestSuite) TearDownSuite() {
-	err := suite.redis.Close()
-	suite.NoError(err)
-}
-
-func (suite *GorseClientTestSuite) TestFeedback() {
-	ctx := context.TODO()
-	timestamp := time.Unix(1660459054, 0).UTC()
-	userId := "800"
-	insertFeedbackResp, err := suite.client.InsertFeedback(ctx, []Feedback{{
-		FeedbackType: "like",
-		UserId:       userId,
-		Timestamp:    timestamp,
-		ItemId:       "200",
-	}})
-	suite.NoError(err)
-	suite.Equal(1, insertFeedbackResp.RowAffected)
-
-	insertFeedbacksResp, err := suite.client.InsertFeedback(ctx, []Feedback{{
-		FeedbackType: "read",
-		UserId:       userId,
-		Timestamp:    timestamp,
-		ItemId:       "300",
-	}, {
-		FeedbackType: "read",
-		UserId:       userId,
-		Timestamp:    timestamp,
-		ItemId:       "400",
-	}})
-	suite.NoError(err)
-	suite.Equal(2, insertFeedbacksResp.RowAffected)
-
-	feedbacks, err := suite.client.ListFeedbacks(ctx, "read", userId)
-	suite.NoError(err)
-	suite.ElementsMatch([]Feedback{
-		{
-			FeedbackType: "read",
-			UserId:       userId,
-			Timestamp:    timestamp,
-			ItemId:       "300",
-		}, {
-			FeedbackType: "read",
-			UserId:       userId,
-			Timestamp:    timestamp,
-			ItemId:       "400",
-		},
-	}, feedbacks)
-}
-
-func (suite *GorseClientTestSuite) TestRecommend() {
-	ctx := context.TODO()
-	suite.hSet("offline_recommend", "100", []Score{
-		{Id: "1", Score: 1},
-		{Id: "2", Score: 2},
-		{Id: "3", Score: 3},
-	})
-	resp, err := suite.client.GetRecommend(ctx, "100", "", 10, 0)
-	suite.NoError(err)
-	suite.Equal([]string{"3", "2", "1"}, resp)
-}
-
-func (suite *GorseClientTestSuite) TestSessionRecommend() {
-	ctx := context.Background()
-	suite.hSet("item_neighbors", "1", []Score{
-		{Id: "2", Score: 100000},
-		{Id: "9", Score: 1},
-	})
-	suite.hSet("item_neighbors", "2", []Score{
-		{Id: "3", Score: 100000},
-		{Id: "8", Score: 1},
-		{Id: "9", Score: 1},
-	})
-	suite.hSet("item_neighbors", "3", []Score{
-		{Id: "4", Score: 100000},
-		{Id: "7", Score: 1},
-		{Id: "8", Score: 1},
-		{Id: "9", Score: 1},
-	})
-	suite.hSet("item_neighbors", "4", []Score{
-		{Id: "1", Score: 100000},
-		{Id: "6", Score: 1},
-		{Id: "7", Score: 1},
-		{Id: "8", Score: 1},
-		{Id: "9", Score: 1},
-	})
-
-	feedbackType := "like"
-	userId := "0"
-	timestamp := time.Unix(1660459054, 0).UTC()
-	resp, err := suite.client.SessionRecommend(ctx, []Feedback{
-		{
-			FeedbackType: feedbackType,
-			UserId:       userId,
-			ItemId:       "1",
-			Timestamp:    timestamp,
-		},
-		{
-			FeedbackType: feedbackType,
-			UserId:       userId,
-			ItemId:       "2",
-			Timestamp:    timestamp,
-		},
-		{
-			FeedbackType: feedbackType,
-			UserId:       userId,
-			ItemId:       "3",
-			Timestamp:    timestamp,
-		},
-		{
-			FeedbackType: feedbackType,
-			UserId:       userId,
-			ItemId:       "4",
-			Timestamp:    timestamp,
-		},
-	}, 3)
-	suite.NoError(err)
-	suite.Equal([]Score{
-		{
-			Id:    "9",
-			Score: 4,
-		},
-		{
-			Id:    "8",
-			Score: 3,
-		},
-		{
-			Id:    "7",
-			Score: 2,
-		},
-	}, resp)
-}
-
-func (suite *GorseClientTestSuite) TestNeighbors() {
-	ctx := context.Background()
-	suite.hSet("item_neighbors", "100", []Score{
-		{Id: "1", Score: 1},
-		{Id: "2", Score: 2},
-		{Id: "3", Score: 3},
-	})
-
-	itemId := "100"
-	resp, err := suite.client.GetNeighbors(ctx, itemId, 3)
-	suite.NoError(err)
-	suite.Equal([]Score{
-		{
-			Id:    "3",
-			Score: 3,
-		}, {
-			Id:    "2",
-			Score: 2,
-		}, {
-			Id:    "1",
-			Score: 1,
-		},
-	}, resp)
+	suite.client = NewGorseClient(serverEndpoint, GorseApiKey)
 }
 
 func (suite *GorseClientTestSuite) TestUsers() {
-	ctx := context.TODO()
-	user := User{
-		UserId:  "100",
-		Labels:  []string{"a", "b", "c"},
-		Comment: "comment",
-	}
-	userPatch := UserPatch{
-		Comment: &user.Comment,
+	ctx := context.Background()
+
+	cursor, err := suite.client.GetUsers(ctx, 3, "")
+	suite.NoError(err)
+	suite.NotEmpty(cursor.Cursor)
+	if suite.Len(cursor.Users, 3) {
+		suite.Equal(User{
+			UserId: "1",
+			Labels: map[string]any{
+				"age":        float64(24),
+				"gender":     "M",
+				"occupation": "technician",
+				"zip_code":   "85711",
+			},
+		}, cursor.Users[0])
+		suite.Equal(User{
+			UserId: "10",
+			Labels: map[string]any{
+				"age":        float64(53),
+				"gender":     "M",
+				"occupation": "lawyer",
+				"zip_code":   "90703",
+			},
+		}, cursor.Users[1])
+		suite.Equal(User{
+			UserId: "100",
+			Labels: map[string]any{
+				"age":        float64(36),
+				"gender":     "M",
+				"occupation": "executive",
+				"zip_code":   "90254",
+			},
+		}, cursor.Users[2])
 	}
 
+	user := User{
+		UserId:  "1000",
+		Labels:  map[string]any{"gender": "M", "occupation": "engineer"},
+		Comment: "zhenghaoz",
+	}
 	rowAffected, err := suite.client.InsertUser(ctx, user)
 	suite.NoError(err)
 	suite.Equal(1, rowAffected.RowAffected)
+	resp, err := suite.client.GetUser(ctx, "1000")
+	suite.NoError(err)
+	suite.Equal(user, resp)
 
-	rowAffected, err = suite.client.UpdateUser(ctx, user.UserId, userPatch)
+	comment := "hongmi"
+	patch := UserPatch{
+		Comment: &comment,
+	}
+	rowAffected, err = suite.client.UpdateUser(ctx, user.UserId, patch)
 	suite.NoError(err)
 	suite.Equal(1, rowAffected.RowAffected)
-
-	userResp, err := suite.client.GetUser(ctx, "100")
+	resp, err = suite.client.GetUser(ctx, "1000")
 	suite.NoError(err)
-	suite.Equal(user, userResp)
+	suite.Equal("hongmi", resp.Comment)
 
-	deleteAffect, err := suite.client.DeleteUser(ctx, "100")
+	deleteAffect, err := suite.client.DeleteUser(ctx, "1000")
 	suite.NoError(err)
 	suite.Equal(1, deleteAffect.RowAffected)
-
-	_, err = suite.client.GetUser(ctx, "100")
-	suite.Equal("100: user not found", err.Error())
+	_, err = suite.client.GetUser(ctx, "1000")
+	suite.Equal("1000: user not found", err.Error())
 }
 
 func (suite *GorseClientTestSuite) TestItems() {
 	ctx := context.TODO()
-	timestamp := time.Unix(1660459054, 0).UTC()
+	items, err := suite.client.GetItems(ctx, 3, "")
+	suite.NoError(err)
+	suite.NotEmpty(items.Cursor)
+	if suite.Len(items.Items, 3) {
+		suite.Equal("1", items.Items[0].ItemId)
+		suite.Equal([]string{"Animation", "Children's", "Comedy"}, items.Items[0].Categories)
+		suite.Equal(time.Date(1995, 1, 1, 0, 0, 0, 0, time.UTC), items.Items[0].Timestamp)
+		suite.Equal("Toy Story (1995)", items.Items[0].Comment)
+		suite.Equal("10", items.Items[1].ItemId)
+		suite.Equal([]string{"Drama", "War"}, items.Items[1].Categories)
+		suite.Equal(time.Date(1996, 1, 22, 0, 0, 0, 0, time.UTC), items.Items[1].Timestamp)
+		suite.Equal("Richard III (1995)", items.Items[1].Comment)
+		suite.Equal("100", items.Items[2].ItemId)
+		suite.Equal([]string{"Crime", "Drama", "Thriller"}, items.Items[2].Categories)
+		suite.Equal(time.Date(1997, 2, 14, 0, 0, 0, 0, time.UTC), items.Items[2].Timestamp)
+		suite.Equal("Fargo (1996)", items.Items[2].Comment)
+	}
+
 	item := Item{
-		ItemId:   "100",
+		ItemId:   "2000",
 		IsHidden: true,
 		Labels: map[string]any{
-			"Topics":    []any{"a", "b", "c"},
-			"Embedding": []any{float64(1), float64(2), float64(3)},
+			"embedding": []any{0.1, 0.2, 0.3},
 		},
-		Categories: []string{"d", "e"},
-		Timestamp:  timestamp,
-		Comment:    "comment",
-	}
-	itemPatch := ItemPatch{
-		Comment: &item.Comment,
+		Categories: []string{"Comedy", "Animation"},
+		Timestamp:  time.Now().UTC().Truncate(time.Second),
+		Comment:    "Minions (2015)",
 	}
 	rowAffected, err := suite.client.InsertItem(ctx, item)
 	suite.NoError(err)
 	suite.Equal(1, rowAffected.RowAffected)
+	resp, err := suite.client.GetItem(ctx, "2000")
+	suite.NoError(err)
+	suite.Equal(item, resp)
 
-	rowAffected, err = suite.client.UpdateItem(ctx, item.ItemId, itemPatch)
+	comment := "小黄人 (2015)"
+	patch := ItemPatch{
+		Comment: &comment,
+	}
+	rowAffected, err = suite.client.UpdateItem(ctx, item.ItemId, patch)
 	suite.NoError(err)
 	suite.Equal(1, rowAffected.RowAffected)
-
-	itemResp, err := suite.client.GetItem(ctx, "100")
+	resp, err = suite.client.GetItem(ctx, "2000")
 	suite.NoError(err)
-	suite.Equal(item, itemResp)
+	suite.Equal("小黄人 (2015)", resp.Comment)
 
-	deleteAffect, err := suite.client.DeleteItem(ctx, "100")
+	deleteAffect, err := suite.client.DeleteItem(ctx, "2000")
 	suite.NoError(err)
 	suite.Equal(1, deleteAffect.RowAffected)
-
-	_, err = suite.client.GetItem(ctx, "100")
-	suite.Equal("100: item not found", err.Error())
+	_, err = suite.client.GetItem(ctx, "2000")
+	suite.Equal("2000: item not found", err.Error())
 }
 
-func (suite *GorseClientTestSuite) hSet(collection, subset string, scores []Score) {
-	for _, score := range scores {
-		err := suite.redis.HSet(context.TODO(), "documents:"+collection+":"+subset+":"+score.Id,
-			"collection", collection,
-			"subset", subset,
-			"id", score.Id,
-			"score", score.Score,
-			"is_hidden", 0,
-			"categories", base64.RawStdEncoding.EncodeToString([]byte("_")),
-			"timestamp", time.Now().UnixMicro(),
-		).Err()
+func (suite *GorseClientTestSuite) TestFeedback() {
+	ctx := context.Background()
+	_, err := suite.client.InsertUser(ctx, User{UserId: "2000"})
+	suite.NoError(err)
+
+	feedback := []Feedback{
+		{
+			FeedbackType: "watch",
+			UserId:       "2000",
+			ItemId:       "1",
+			Value:        1.0,
+			Timestamp:    time.Now().UTC().Truncate(time.Second),
+		},
+		{
+			FeedbackType: "watch",
+			UserId:       "2000",
+			ItemId:       "1060",
+			Value:        2.0,
+			Timestamp:    time.Now().UTC().Truncate(time.Second),
+		},
+		{
+			FeedbackType: "watch",
+			UserId:       "2000",
+			ItemId:       "11",
+			Value:        3.0,
+			Timestamp:    time.Now().UTC().Truncate(time.Second),
+		},
+	}
+	for _, fb := range feedback {
+		_, err := suite.client.DeleteFeedbacks(ctx, fb.UserId, fb.ItemId)
 		suite.NoError(err)
+	}
+	_, err = suite.client.InsertFeedback(ctx, feedback)
+	suite.NoError(err)
+
+	userFeedback, err := suite.client.ListFeedbacks(ctx, "watch", "2000")
+	suite.NoError(err)
+	suite.Equal(feedback, userFeedback)
+
+	_, err = suite.client.DeleteFeedback(ctx, "watch", "2000", "1")
+	suite.NoError(err)
+	userFeedback, err = suite.client.ListFeedbacks(ctx, "watch", "2000")
+	suite.NoError(err)
+	suite.Equal([]Feedback{feedback[1], feedback[2]}, userFeedback)
+}
+
+func (suite *GorseClientTestSuite) TestLatest() {
+	ctx := context.Background()
+	items, err := suite.client.GetLatestItems(ctx, "", "", 3, 0)
+	suite.NoError(err)
+	if suite.Len(items, 3) {
+		suite.Equal("315", items[0].Id)
+		suite.Equal("1432", items[1].Id)
+		suite.Equal("918", items[2].Id)
+	}
+}
+
+func (suite *GorseClientTestSuite) TestItemToItem() {
+	ctx := context.Background()
+	neighbors, err := suite.client.GetNeighbors(ctx, "1", 3)
+	suite.NoError(err)
+	if suite.Len(neighbors, 3) {
+		suite.Equal("1060", neighbors[0].Id)
+		suite.Equal("404", neighbors[1].Id)
+		suite.Equal("1219", neighbors[2].Id)
+	}
+}
+
+func (suite *GorseClientTestSuite) TestRecommend() {
+	ctx := context.Background()
+	_, err := suite.client.InsertUser(ctx, User{UserId: "3000"})
+	suite.NoError(err)
+	recommendations, err := suite.client.GetRecommend(ctx, "3000", "", 3, 0)
+	suite.NoError(err)
+	suite.Len(recommendations, 3)
+	if suite.Len(recommendations, 3) {
+		suite.Equal("315", recommendations[0])
+		suite.Equal("1432", recommendations[1])
+		suite.Equal("918", recommendations[2])
 	}
 }
 
