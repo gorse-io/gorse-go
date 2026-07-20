@@ -33,6 +33,14 @@ type GorseClient struct {
 	httpClient http.Client
 }
 
+type RecommendOptions struct {
+	Categories     []string
+	WriteBackType  string
+	WriteBackDelay string
+	N              int
+	Offset         int
+}
+
 func NewGorseClient(entryPoint, apiKey string) *GorseClient {
 	return &GorseClient{
 		entryPoint: entryPoint,
@@ -59,9 +67,23 @@ func (c *GorseClient) DeleteFeedbacks(ctx context.Context, userId, itemId string
 
 // GetRecommend returns recommended items with scores for a user.
 // Uses X-API-Version: 2 header to return scores.
-func (c *GorseClient) GetRecommend(ctx context.Context, userId string, category string, n, offset int) ([]Score, error) {
-	url := c.entryPoint + fmt.Sprintf("/api/recommend/%s/%s?n=%d&offset=%v", userId, category, n, offset)
-	return requestWithHeaders[[]Score, any](ctx, c, "GET", url, nil, map[string]string{"X-API-Version": "2"})
+func (c *GorseClient) GetRecommend(ctx context.Context, userId string, options RecommendOptions) ([]Score, error) {
+	query := url.Values{}
+	for _, category := range options.Categories {
+		if category != "" {
+			query.Add("category", category)
+		}
+	}
+	if options.WriteBackType != "" {
+		query.Set("write-back-type", options.WriteBackType)
+	}
+	if options.WriteBackDelay != "" {
+		query.Set("write-back-delay", options.WriteBackDelay)
+	}
+	query.Set("n", fmt.Sprint(options.N))
+	query.Set("offset", fmt.Sprint(options.Offset))
+	requestURL := fmt.Sprintf("%s/api/recommend/%s?%s", c.entryPoint, url.PathEscape(userId), query.Encode())
+	return requestWithHeaders[[]Score, any](ctx, c, "GET", requestURL, nil, map[string]string{"X-API-Version": "2"})
 }
 
 // use category as empty string to get all elements

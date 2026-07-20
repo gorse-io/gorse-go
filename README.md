@@ -61,7 +61,7 @@ func main() {
     }
 
     // Get recommendations
-    recs, err := gorse.GetRecommend(ctx, "bob", "", 10, 0)
+    recs, err := gorse.GetRecommend(ctx, "bob", client.RecommendOptions{N: 10})
     if err != nil {
         log.Fatal(err)
     }
