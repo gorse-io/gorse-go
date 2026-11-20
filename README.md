@@ -10,6 +10,9 @@ Go SDK for Gorse recommender system.
 
 ## Install
 
+Requires Go 1.27 or later. The client uses `encoding/json/v2` with strict JSON
+validation and case-sensitive response field matching.
+
 ```bash
 go get github.com/gorse-io/gorse-go
 ```

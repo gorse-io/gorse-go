@@ -15,14 +15,14 @@
 package client
 
 import (
+	"bytes"
 	"context"
-	"encoding/json"
+	"encoding/json/v2"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
-	"strings"
 
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
@@ -54,7 +54,7 @@ func (c *GorseClient) InsertFeedback(ctx context.Context, feedbacks []Feedback) 
 }
 
 func (c *GorseClient) ListFeedbacks(ctx context.Context, feedbackType, userId string) ([]Feedback, error) {
-	return request[[]Feedback, any](ctx, c, "GET", c.entryPoint+fmt.Sprintf("/api/user/"+userId+"/feedback/"+feedbackType), nil)
+	return request[[]Feedback, any](ctx, c, "GET", c.entryPoint+"/api/user/"+userId+"/feedback/"+feedbackType, nil)
 }
 
 func (c *GorseClient) DeleteFeedback(ctx context.Context, feedbackType, userId, itemId string) (RowAffected, error) {
@@ -193,12 +193,13 @@ func request[Response any, Body any](ctx context.Context, c *GorseClient, method
 }
 
 func requestWithHeaders[Response any, Body any](ctx context.Context, c *GorseClient, method, url string, body Body, headers map[string]string) (result Response, err error) {
-	bodyByte, marshalErr := json.Marshal(body)
+	// Preserve null for unset slices and maps, especially in PATCH requests.
+	bodyByte, marshalErr := json.Marshal(body, json.FormatNilSliceAsNull(true), json.FormatNilMapAsNull(true))
 	if marshalErr != nil {
 		return result, marshalErr
 	}
 	var req *http.Request
-	req, err = http.NewRequestWithContext(ctx, method, url, strings.NewReader(string(bodyByte)))
+	req, err = http.NewRequestWithContext(ctx, method, url, bytes.NewReader(bodyByte))
 	if err != nil {
 		return result, err
 	}
@@ -217,15 +218,14 @@ func requestWithHeaders[Response any, Body any](ctx context.Context, c *GorseCli
 			log.Println(err)
 		}
 	}(resp.Body)
-	buf := new(strings.Builder)
-	_, err = io.Copy(buf, resp.Body)
-	if err != nil {
-		return result, err
-	}
 	if resp.StatusCode != http.StatusOK {
-		return result, ErrorMessage(buf.String())
+		buf, readErr := io.ReadAll(resp.Body)
+		if readErr != nil {
+			return result, readErr
+		}
+		return result, ErrorMessage(buf)
 	}
-	err = json.Unmarshal([]byte(buf.String()), &result)
+	err = json.UnmarshalRead(resp.Body, &result)
 	if err != nil {
 		return result, err
 	}

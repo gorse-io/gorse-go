@@ -35,7 +35,7 @@ We appreciate your contributions!
 
 The following installations are required:
 
-- **Go 1.20+**: Minimum Go version to build and test gorse-go.
+- **Go 1.27+**: Minimum Go version to build and test gorse-go.
 - **Docker Compose**: For starting a local Gorse cluster when you need to test against a live server.
 
 After installing required software, run the following commands to verify the setup:
